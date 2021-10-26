@@ -1,11 +1,10 @@
-use anyhow::Result;
+// use anyhow::Result;
 use clap::{clap_app, crate_version};
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
 use std::{
     collections::HashMap,
     fs::{remove_file, File},
-    io::Cursor,
     process::exit,
 };
 
@@ -32,7 +31,7 @@ struct ManifestBlob {
 #[derive(Deserialize)]
 struct DownloadEntry {
     sha1: String,
-    size: u64,
+    size: usize,
     url: String,
 }
 
@@ -50,8 +49,8 @@ macro_rules! exit {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+fn main() -> Result<()> {
     // arg parsing
     let matches = clap_app!(myapp =>
         (version: crate_version!())
@@ -68,8 +67,8 @@ async fn main() -> Result<()> {
     )
     .get_matches();
 
-    let response = reqwest::get(MANIFEST_URL).await?;
-    let manifest: ManifestBlob = response.json().await?;
+    let response = ureq::get(MANIFEST_URL).call()?;
+    let manifest: ManifestBlob = response.into_json()?;
 
     let quiet = matches.is_present("quiet");
 
@@ -117,8 +116,8 @@ async fn main() -> Result<()> {
     }
     log!("found version {}", target_version);
 
-    let response = reqwest::get(target_entry.url.clone()).await?;
-    let blob: VersionBlob = response.json().await?;
+    let response = ureq::get(&target_entry.url).call()?;
+    let blob: VersionBlob = response.into_json()?;
 
     assert_eq!(
         &blob.id, target_version,
@@ -142,9 +141,13 @@ async fn main() -> Result<()> {
     };
 
     log!("downloading {}", download.url);
-    let response = reqwest::get(download.url.clone()).await?;
+    let response = ureq::get(&download.url).call()?;
     assert_eq!(
-        response.content_length().unwrap(),
+        response
+            .header("content-length")
+            .expect("download url did not provide content-length")
+            .parse::<usize>()
+            .unwrap(),
         download.size,
         "manifest provided different content length"
     );
@@ -152,8 +155,7 @@ async fn main() -> Result<()> {
     let file_path = format!("{}.jar", file_name);
 
     let mut file = File::create(&file_path)?;
-    let mut content = Cursor::new(response.bytes().await?);
-    std::io::copy(&mut content, &mut file)?;
+    std::io::copy(&mut response.into_reader(), &mut file)?;
 
     log!("checking file hash {}", download.sha1);
     if !matches.is_present("insecure") {
