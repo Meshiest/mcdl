@@ -37,3 +37,25 @@ OPTIONS:
 ARGS:
     <VERSION>...    Get a specific version
 ```
+
+## Why?
+
+I thought it would be fun to write in Rust. If you wanted a single line of bash to do it, use one of these (requires `jq`, `curl`, and `wget`):
+
+- Download latest available (snapshot or release) minecraft server.jar
+
+  ```sh
+  curl -s $(curl -s "https://launchermeta.mojang.com/mc/game/version_manifest.json" | jq -r ".versions[0].url") | jq -r ".downloads.server.url" | xargs wget
+  ```
+
+- Download latest release minecraft server.jar
+
+  ```sh
+  curl -s $(curl -s "https://launchermeta.mojang.com/mc/game/version_manifest.json" | jq -r ".latest.release as \$v | .versions[] | select(.id == \$v) | .url") | jq -r ".downloads.server.url" | xargs wget
+  ```
+
+- Download latest snapshot minecraft server.jar
+
+  ```sh
+  curl -s $(curl -s "https://launchermeta.mojang.com/mc/game/version_manifest.json" | jq -r ".latest.snapshot as \$v | .versions[] | select(.id == \$v) | .url") | jq -r ".downloads.server.url" | xargs wget
+  ```
