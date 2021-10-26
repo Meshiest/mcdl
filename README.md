@@ -69,3 +69,44 @@ I thought it would be fun to write in Rust. If you wanted a single line of bash 
   ```sh
   curl -s $(curl -s "https://launchermeta.mojang.com/mc/game/version_manifest.json" | jq -r ".latest.snapshot as \$v | .versions[] | select(.id == \$v) | .url") | jq -r ".downloads.server.url" | xargs wget
   ```
+
+## Example Scripts
+
+### (Windows) Automatically install latest snapshot, then start minecraft server
+
+```bat
+@echo OFF
+@REM if a version file exists, check if it's the latest, otherwise download the server
+if exist version.txt (
+  goto checkVersion
+) else (
+  goto download
+)
+
+:checkVersion
+@REM compare latest version with the one that is installed
+mcdl.exe -sp > temp.version.txt
+fc /b temp.version.txt version.txt > nul
+if errorlevel 1 (
+  @REM on different version - install the game
+  mcdl.exe -s
+  move /y temp.version.txt version.txt > nul
+) else (
+  @REM on same version delete the temp file
+  del temp.version.txt > nul
+)
+goto server
+
+@REM download the game and update the version
+:download
+mcdl.exe -s
+mcdl.exe -sp > version.txt
+
+@REM start the server
+:server
+java -Xmx4G -Xms2G -jar server.jar nogui
+
+timeout /t 5
+goto server
+pause
+```
