@@ -15,6 +15,16 @@ Automatically download minecraft server jars in one line (or one click)
 - `mcdl -n` - download latest server as `server-1.17.1.jar`
 - `mcdl -n 1.16.5` - download 1.16.5 as `server-1.16.5.jar`
 
+### Windows
+
+To create shortcuts that will automatically download the latest snapshot:
+
+1. Right click on `mcdl.exe` and click "Create Shortcut"
+2. Right click on the newly created shortcut and click "Properties"
+3. In the "Target" text area, add "-s" to the end
+
+You can replace the "-s" in step 3 with any of the other flags from the examples above or the usage below
+
 ## Usage
 
 ```
